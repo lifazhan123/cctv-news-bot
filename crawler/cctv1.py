@@ -21,7 +21,7 @@ class Cctv1Spider(scrapy.Spider):
                 callback=self.parse_detail,
                 meta={'title': title.strip(), 'link': link, 'source': '新闻联播'}
             )
-
+            
     def parse_detail(self, response):
         title = response.meta['title']
         link = response.meta['link']
