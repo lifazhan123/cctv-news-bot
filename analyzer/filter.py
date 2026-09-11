@@ -2,7 +2,6 @@
 
 from config import STOCKS, INDUSTRIES
 
-
 def match_stocks(news):
     """
     判断新闻涉及哪些股票
