@@ -1,6 +1,10 @@
 from analyzer.filter import count_keyword_hits
 
 
+# =========================================
+# 公司重大信息
+# =========================================
+
 COMPANY_MAJOR_KEYWORDS = [
     "重大合同",
     "重大订单",
@@ -50,6 +54,67 @@ COMPANY_TECH_KEYWORDS = [
 ]
 
 
+# =========================================
+# 行业信息
+# =========================================
+
+INDUSTRY_MAJOR_KEYWORDS = [
+    "行业政策",
+    "产业政策",
+    "发展规划",
+    "指导意见",
+    "实施方案",
+    "专项行动",
+    "监管政策",
+    "政策调整",
+    "价格上涨",
+    "价格下跌",
+    "价格大涨",
+    "价格大跌",
+    "价格调整",
+    "供需",
+    "供需紧张",
+    "产能过剩",
+    "产能退出",
+]
+
+
+INDUSTRY_IMPORTANT_KEYWORDS = [
+    "需求增长",
+    "需求下降",
+    "市场规模",
+    "投资增长",
+    "投资下降",
+    "出口增长",
+    "出口下降",
+    "装机容量",
+    "新增装机",
+    "产量增长",
+    "产量下降",
+    "成本下降",
+    "成本上升",
+    "产业链",
+    "供应链",
+    "产能扩张",
+    "新增产能",
+    "重大项目",
+    "重大工程",
+    "重大突破",
+    "技术突破",
+    "首次实现",
+    "实现量产",
+    "商业化",
+    "新能源装机",
+    "储能",
+    "充电基础设施",
+    "数字电网",
+]
+
+
+# =========================================
+# 政策
+# =========================================
+
 POLICY_KEYWORDS = [
     "国务院",
     "国家发展改革委",
@@ -64,44 +129,105 @@ POLICY_KEYWORDS = [
 ]
 
 
+# =========================================
+# 军事 / 战争 / 军工
+# =========================================
+
+MILITARY_MAJOR_KEYWORDS = [
+    "战争",
+    "军事冲突",
+    "武装冲突",
+    "军事行动",
+    "空袭",
+    "导弹",
+    "高超音速",
+    "军费",
+    "国防预算",
+    "军工订单",
+    "装备采购",
+    "装备列装",
+    "批量生产",
+    "重大军演",
+    "联合军演",
+]
+
+
+MILITARY_IMPORTANT_KEYWORDS = [
+    "军工",
+    "国防",
+    "武器装备",
+    "无人机",
+    "无人作战",
+    "无人系统",
+    "雷达",
+    "红外",
+    "红外探测",
+    "热成像",
+    "光电",
+    "电子战",
+    "电子对抗",
+    "战斗机",
+    "歼击机",
+    "轰炸机",
+    "预警机",
+    "航母",
+    "军舰",
+    "舰艇",
+    "潜艇",
+    "军品",
+    "军工企业",
+    "军工集团",
+    "装备研发",
+    "装备试验",
+    "装备定型",
+]
+
+
 def calculate_score(news):
 
-    matched_stocks = news.get("matched_stocks", [])
-    matched_industries = news.get("matched_industries", [])
-
-    important_industry_hits = news.get(
-        "important_industry_hits",
+    matched_stocks = news.get(
+        "matched_stocks",
         []
     )
 
-    is_macro_noise = news.get(
-        "is_macro_noise",
-        False
+    matched_industries = news.get(
+        "matched_industries",
+        []
+    )
+
+    military_keywords = news.get(
+        "matched_military_keywords",
+        []
     )
 
     score = 0
+
     reasons = []
 
-    # ==================================================
-    # 一、直接涉及股票
-    # ==================================================
+    # =====================================
+    # 关注股票
+    # =====================================
 
     if matched_stocks:
 
-        # 股票基础分
         score += 15
-        reasons.append("涉及关注股票")
 
-        # 标题出现公司名称
+        reasons.append(
+            "涉及关注股票"
+        )
+
         for stock in matched_stocks:
 
             if stock.get("match_type") == "标题":
 
                 score += 10
-                reasons.append("标题涉及公司")
+
+                reasons.append(
+                    "标题涉及公司"
+                )
+
                 break
 
-        # 重大事项
         major_hits = count_keyword_hits(
             news,
             COMPANY_MAJOR_KEYWORDS
@@ -114,9 +240,10 @@ def calculate_score(news):
                 30
             )
 
-            reasons.extend(major_hits)
+            reasons.extend(
+                major_hits
+            )
 
-        # 经营信息
         operation_hits = count_keyword_hits(
             news,
             COMPANY_OPERATION_KEYWORDS
@@ -129,9 +256,10 @@ def calculate_score(news):
                 18
             )
 
-            reasons.extend(operation_hits)
+            reasons.extend(
+                operation_hits
+            )
 
-        # 技术信息
         tech_hits = count_keyword_hits(
             news,
             COMPANY_TECH_KEYWORDS
@@ -144,67 +272,158 @@ def calculate_score(news):
                 15
             )
 
-            reasons.extend(tech_hits)
+            reasons.extend(
+                tech_hits
+            )
 
-    # ==================================================
-    # 二、行业新闻
-    # ==================================================
+    # =====================================
+    # 行业信息
+    # =====================================
 
     elif matched_industries:
 
-        # 如果只是宏观/外交新闻
-        if is_macro_noise:
+        score += 2
 
-            score = 0
-            reasons.append("宏观信息")
+        reasons.append(
+            "涉及相关行业"
+        )
 
-        else:
+        major_hits = count_keyword_hits(
+            news,
+            INDUSTRY_MAJOR_KEYWORDS
+        )
 
-            # 有明确行业重大变化
-            if important_industry_hits:
+        if major_hits:
 
-                score += 8
-
-                reasons.extend(
-                    important_industry_hits[:3]
-                )
-
-            else:
-
-                # 只是普通行业提及
-                score += 2
-                reasons.append("一般行业信息")
-
-            # 政策信息
-            policy_hits = count_keyword_hits(
-                news,
-                POLICY_KEYWORDS
+            score += min(
+                len(major_hits) * 6,
+                18
             )
 
-            if policy_hits and important_industry_hits:
+            reasons.extend(
+                major_hits
+            )
 
-                score += 5
-                reasons.append("政策信息")
+        important_hits = count_keyword_hits(
+            news,
+            INDUSTRY_IMPORTANT_KEYWORDS
+        )
 
-    # ==================================================
-    # 三、宏观新闻强制降权
-    # ==================================================
+        if important_hits:
 
-    if is_macro_noise and not matched_stocks:
+            score += min(
+                len(important_hits) * 4,
+                12
+            )
 
-        score = min(score, 3)
+            reasons.extend(
+                important_hits
+            )
 
-    # ==================================================
-    # 四、没有明确股票时，限制最高分
-    # ==================================================
+        policy_hits = count_keyword_hits(
+            news,
+            POLICY_KEYWORDS
+        )
+
+        if policy_hits:
+
+            score += 5
+
+            reasons.append(
+                "政策信息"
+            )
+
+    # =====================================
+    # 军事 / 战争 / 军工信息
+    # =====================================
+
+    if military_keywords:
+
+        score += 5
+
+        reasons.append(
+            "央视军事信息"
+        )
+
+        # 重大军事关键词
+        major_hits = [
+            keyword
+            for keyword in MILITARY_MAJOR_KEYWORDS
+            if keyword in military_keywords
+        ]
+
+        if major_hits:
+
+            score += min(
+                len(major_hits) * 8,
+                30
+            )
+
+            reasons.extend(
+                major_hits
+            )
+
+        # 普通重要军事关键词
+        important_hits = [
+            keyword
+            for keyword in MILITARY_IMPORTANT_KEYWORDS
+            if keyword in military_keywords
+        ]
+
+        if important_hits:
+
+            score += min(
+                len(important_hits) * 4,
+                20
+            )
+
+            reasons.extend(
+                important_hits
+            )
+
+        # 军事新闻同时涉及关注股票
+        if matched_stocks:
+
+            score += 15
+
+            reasons.append(
+                "军事信息涉及关注股票"
+            )
+
+        # 标题命中重大军事关键词
+        title = news.get(
+            "title",
+            ""
+        )
+
+        title_hits = [
+            keyword
+            for keyword in MILITARY_MAJOR_KEYWORDS
+            if keyword in title
+        ]
+
+        if title_hits:
+
+            score += 10
+
+            reasons.append(
+                "标题涉及重要军事信息"
+            )
+
+    # =====================================
+    # 非股票信息最高20分
+    # =====================================
 
     if not matched_stocks:
 
-        score = min(score, 15)
+        score = min(
+            score,
+            20
+        )
 
-    # ==================================================
-    # 五、关注等级
-    # ==================================================
+    # =====================================
+    # 重要程度
+    # =====================================
 
     if score >= 30:
 
@@ -223,6 +442,7 @@ def calculate_score(news):
         level = "普通信息"
 
     news["score"] = score
+
     news["level"] = level
 
     news["score_reasons"] = list(
